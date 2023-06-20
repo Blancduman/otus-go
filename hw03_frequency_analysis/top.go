@@ -5,53 +5,50 @@ import (
 	"strings"
 )
 
-type pairs []pair
-
-type pair struct {
-	amount int
-	word   string
-}
-
-func (p pairs) toWordsSlice() []string {
-	words := make([]string, len(p))
-
-	for i, v := range p {
-		words[i] = v.word
-	}
-
-	return words
-}
-
 func Top10(text string) []string {
 	wordToAmountMap := map[string]int{}
+	words := make([]string, 0)
+	result := make([]string, 0)
 
-	words := strings.Fields(text)
+	for _, v := range strings.Fields(strings.ToLower(text)) {
+		word := strings.Trim(v, "\"!,.-")
+		if word != "" {
+			words = append(words, word)
+		}
+	}
+
 	for _, word := range words {
 		wordToAmountMap[word]++
 	}
 
-	wordToAmountSlice := make(pairs, 0)
+	sort.Slice(words, func(i, j int) bool {
+		a := words[i]
+		b := words[j]
 
-	for k, v := range wordToAmountMap {
-		if v != 0 {
-			wordToAmountSlice = append(wordToAmountSlice, pair{
-				amount: v,
-				word:   k,
-			})
-		}
-	}
-
-	sort.Slice(wordToAmountSlice, func(i, j int) bool {
-		if wordToAmountSlice[i].amount == wordToAmountSlice[j].amount {
-			return strings.Compare(wordToAmountSlice[i].word, wordToAmountSlice[j].word) != 1
+		if wordToAmountMap[a] == wordToAmountMap[b] {
+			return a < b
 		}
 
-		return wordToAmountSlice[i].amount > wordToAmountSlice[j].amount
+		return wordToAmountMap[a] > wordToAmountMap[b]
 	})
 
-	if len(wordToAmountSlice) > 10 {
-		return wordToAmountSlice[:10].toWordsSlice()
+	for _, w := range words {
+		if len(result) == 10 {
+			break
+		}
+
+		canAdd := true
+		for _, v := range result {
+			if w == v {
+				canAdd = false
+				continue
+			}
+		}
+
+		if canAdd {
+			result = append(result, w)
+		}
 	}
 
-	return wordToAmountSlice.toWordsSlice()
+	return result
 }
