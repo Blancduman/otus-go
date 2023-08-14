@@ -67,4 +67,36 @@ func TestRun(t *testing.T) {
 		require.Equal(t, runTasksCount, int32(tasksCount), "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
 	})
+
+	t.Run("zero and below m argument", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			tasks          []Task
+			maxErrorsCount int
+			workersCount   int
+		}{
+			{
+				name:           "run with 0 max errors count",
+				tasks:          nil,
+				maxErrorsCount: 0,
+				workersCount:   999,
+			},
+			{
+				name:           "run with minus random typed max errors count",
+				tasks:          nil,
+				maxErrorsCount: -12312934,
+				workersCount:   999,
+			},
+		}
+
+		for _, test := range tests {
+			test := test
+
+			t.Run(test.name, func(t *testing.T) {
+				err := Run(test.tasks, test.workersCount, test.maxErrorsCount)
+
+				require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "actual err - %v", err)
+			})
+		}
+	})
 }
