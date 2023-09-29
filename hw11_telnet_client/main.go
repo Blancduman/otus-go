@@ -19,7 +19,7 @@ var (
 func init() {
 	flag.IntVar(&port, "port", 3000, "port")
 	flag.StringVar(&host, "host", "localhost", "dns or ip address")
-	timeout = *flag.Duration("timeout", 10*time.Second, "timeout")
+	flag.DurationVar(&timeout, "timeout", 10*time.Second, "timeout")
 }
 
 func main() {
@@ -41,13 +41,14 @@ func main() {
 
 	err := client.Connect()
 	if err != nil {
-		log.Fatalf("fail to connect: %v", err)
+		log.Printf("fail to connect: %v", err)
+		return
 	}
 
 	defer func() {
 		err := client.Close()
 		if err != nil {
-			log.Fatalf("fail to close: %v", err)
+			log.Printf("fail to close: %v", err)
 		}
 	}()
 
