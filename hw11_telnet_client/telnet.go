@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"io"
+	"net"
 	"time"
 )
 
@@ -12,10 +14,66 @@ type TelnetClient interface {
 	Receive() error
 }
 
+type telnetClient struct {
+	address string
+	timeout time.Duration
+	in      io.ReadCloser
+	out     io.Writer
+	conn    net.Conn
+}
+
 func NewTelnetClient(address string, timeout time.Duration, in io.ReadCloser, out io.Writer) TelnetClient {
-	// Place your code here.
+	return &telnetClient{
+		address: address,
+		timeout: timeout,
+		in:      in,
+		out:     out,
+		conn:    nil,
+	}
+}
+
+func (t *telnetClient) Connect() (err error) {
+	t.conn, err = net.DialTimeout("tcp", t.address, t.timeout)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-// Place your code here.
-// P.S. Author's solution takes no more than 50 lines.
+func (t *telnetClient) Close() (err error) {
+	if t.conn != nil {
+		err = t.conn.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t *telnetClient) Send() error {
+	if t.conn == nil {
+		return errors.New("no stream connection")
+	}
+
+	_, err := io.Copy(t.conn, t.in)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *telnetClient) Receive() error {
+	if t.conn == nil {
+		return errors.New("no stream connection")
+	}
+
+	_, err := io.Copy(t.out, t.conn)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
