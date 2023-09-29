@@ -10,19 +10,20 @@ import (
 	"time"
 )
 
-var (
-	port    int
-	host    string
-	timeout time.Duration
-)
+var timeout time.Duration
 
 func init() {
-	flag.IntVar(&port, "port", 3000, "port")
-	flag.StringVar(&host, "host", "localhost", "dns or ip address")
 	flag.DurationVar(&timeout, "timeout", 10*time.Second, "timeout")
 }
 
 func main() {
+	flag.Parse()
+
+	args := flag.Args()
+	if len(args) != 2 {
+		log.Fatal("usage: go-telnet --timeout host port")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	defer cancel()
@@ -36,7 +37,7 @@ func main() {
 	}()
 
 	flag.Parse()
-	address := fmt.Sprintf("%s:%d", host, port)
+	address := fmt.Sprintf("%s:%s", args[0], args[1])
 	client := NewTelnetClient(address, timeout, os.Stdin, os.Stdout)
 
 	err := client.Connect()

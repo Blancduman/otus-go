@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"io"
 	"net"
@@ -58,13 +57,7 @@ func (t *telnetClient) Send() error {
 		return errors.New("no stream connection")
 	}
 
-	scanner := bufio.NewScanner(t.in)
-
-	if !scanner.Scan() {
-		return errors.New("nothing to read")
-	}
-
-	_, err := t.conn.Write(append(scanner.Bytes(), '\n'))
+	_, err := io.Copy(t.conn, t.in)
 	if err != nil {
 		return err
 	}
@@ -77,13 +70,7 @@ func (t *telnetClient) Receive() error {
 		return errors.New("no stream connection")
 	}
 
-	scanner := bufio.NewScanner(t.conn)
-
-	if !scanner.Scan() {
-		return errors.New("connection closed")
-	}
-
-	_, err := t.out.Write(append(scanner.Bytes(), '\n'))
+	_, err := io.Copy(t.out, t.conn)
 	if err != nil {
 		return err
 	}
