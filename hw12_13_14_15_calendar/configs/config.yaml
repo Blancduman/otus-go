@@ -1,0 +1,9 @@
+
+logger:
+  level: info
+http:
+  host: localhost
+  port: 8080
+database:
+  url:
+  type: in_memory

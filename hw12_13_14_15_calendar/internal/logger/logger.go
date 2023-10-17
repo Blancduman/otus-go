@@ -1,20 +1,41 @@
 package logger
 
-import "fmt"
+import (
+	"os"
 
-type Logger struct { // TODO
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+)
+
+type Logger struct {
+	logger *zerolog.Logger
 }
 
 func New(level string) *Logger {
-	return &Logger{}
-}
+	logLvl, err := zerolog.ParseLevel(level)
+	if err != nil {
+		panic(errors.Wrap(err, "fail to parse log level"))
+	}
 
-func (l Logger) Info(msg string) {
-	fmt.Println(msg)
+	logger := zerolog.New(os.Stdout).Level(logLvl)
+
+	return &Logger{
+		logger: &logger,
+	}
 }
 
 func (l Logger) Error(msg string) {
-	// TODO
+	l.logger.Error().Msg(msg)
 }
 
-// TODO
+func (l Logger) Warn(msg string) {
+	l.logger.Warn().Msg(msg)
+}
+
+func (l Logger) Info(msg string) {
+	l.logger.Info().Msg(msg)
+}
+
+func (l Logger) Debug(msg string) {
+	l.logger.Debug().Msg(msg)
+}
