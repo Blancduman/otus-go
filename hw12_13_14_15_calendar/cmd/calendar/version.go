@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -11,6 +13,16 @@ var (
 	buildDate = "UNKNOWN"
 	gitHash   = "UNKNOWN"
 )
+
+func versionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "print version",
+		Run: func(cmd *cobra.Command, args []string) {
+			printVersion()
+		},
+	}
+}
 
 func printVersion() {
 	if err := json.NewEncoder(os.Stdout).Encode(struct {
