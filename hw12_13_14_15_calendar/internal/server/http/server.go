@@ -5,26 +5,22 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	pb "github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/gen_buf/grpc/v1"
+	"github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/server"
+	internalgrpc "github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/server/grpc"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/pkg/errors"
 )
 
 type Server struct {
-	app     Application
-	logger  Logger
+	app     server.Application
+	logger  server.Logger
 	server  *http.Server
 	address string
 }
 
-type Logger interface {
-	Error(msg string)
-	Warn(msg string)
-	Info(msg string)
-	Debug(msg string)
-}
-
-type Application interface { // TODO
-}
-
-func NewServer(logger Logger, app Application, address string) *Server {
+func NewServer(logger server.Logger, app server.Application, address string) *Server {
 	return &Server{
 		app:     app,
 		logger:  logger,
@@ -47,6 +43,15 @@ func (s *Server) Start(ctx context.Context) error {
 			}
 		})
 
+		runtimeMux := runtime.NewServeMux()
+
+		err := s.registerGRPC(ctx, runtimeMux)
+		if err != nil {
+			return errors.Wrap(err, "register grpc api handlers")
+		}
+
+		handler.Handle("/api/v1/", runtimeMux)
+
 		s.server = &http.Server{
 			Addr:         s.address,
 			Handler:      loggingMiddleware(handler, s.logger),
@@ -54,7 +59,7 @@ func (s *Server) Start(ctx context.Context) error {
 			WriteTimeout: time.Second * 10,
 		}
 
-		s.logger.Info(fmt.Sprintf("listening %s", s.address))
+		s.logger.Info(fmt.Sprintf("rest server start %s", s.address))
 
 		return s.server.ListenAndServe()
 	}
@@ -67,4 +72,20 @@ func (s *Server) Stop(ctx context.Context) error {
 	default:
 		return s.server.Close()
 	}
+}
+
+func (s *Server) registerGRPC(ctx context.Context, runtimeMux *runtime.ServeMux) error {
+	err := pb.RegisterEventServiceHandlerServer(
+		ctx,
+		runtimeMux,
+		internalgrpc.EventServer{
+			App:    s.app,
+			Logger: s.logger,
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "register grpc")
+	}
+
+	return nil
 }

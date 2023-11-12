@@ -2,8 +2,11 @@
 logger:
   level: info
 http:
-  host: localhost
+  host: "0.0.0.0"
   port: 8080
+grpc:
+  host: "0.0.0.0"
+  port: 8081
 database:
-  url:
+  url: postgresql://postgres:postgres@localhost:5432/calendar
   type: in_memory

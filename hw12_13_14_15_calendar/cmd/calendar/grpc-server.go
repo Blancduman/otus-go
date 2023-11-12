@@ -7,17 +7,17 @@ import (
 
 	"github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/app"
 	"github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/server/http"
+	internalgrpc "github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/server/grpc"
 	memorystorage "github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/storage/memory"
 	sqlstorage "github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/storage/sql"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-func httpServerCmd(ctx context.Context, conf Config) *cobra.Command {
+func grpcServerCmd(ctx context.Context, conf Config) *cobra.Command {
 	return &cobra.Command{
-		Use:   "http-server",
-		Short: "start http server",
+		Use:   "grpc-server",
+		Short: "start grpc server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var storage app.Storage
 
@@ -29,12 +29,6 @@ func httpServerCmd(ctx context.Context, conf Config) *cobra.Command {
 			switch conf.Database.Type {
 			case "sql":
 				storage = sqlstorage.New(conf.Database.URL)
-				defer func() {
-					err := storage.Close(ctx)
-					if err != nil {
-						logg.Error("fail to close storage: " + err.Error())
-					}
-				}()
 			default:
 				storage = memorystorage.New()
 			}
@@ -51,7 +45,7 @@ func httpServerCmd(ctx context.Context, conf Config) *cobra.Command {
 			}()
 
 			calendar := app.New(logg, storage)
-			server := internalhttp.NewServer(logg, calendar, conf.GetAddr())
+			server := internalgrpc.NewServer(logg, calendar, conf.GetGRPCAddr())
 
 			go func() {
 				<-ctx.Done()
@@ -60,14 +54,14 @@ func httpServerCmd(ctx context.Context, conf Config) *cobra.Command {
 				defer cancel()
 
 				if err := server.Stop(ctx); err != nil {
-					logg.Error("failed to stop http server: " + err.Error())
+					logg.Error("failed to stop grpc server: " + err.Error())
 				}
 			}()
 
 			logg.Info("calendar is running...")
 
 			if err := server.Start(ctx); !errors.Is(err, http.ErrServerClosed) {
-				logg.Error(errors.Wrap(err, "failed to start http server").Error())
+				logg.Error(errors.Wrap(err, "failed to start grpc server").Error())
 			}
 
 			return nil
