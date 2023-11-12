@@ -38,6 +38,7 @@ func run(mCtx context.Context) error {
 	config := NewConfig(configFile)
 	rootCmd.AddCommand(
 		httpServerCmd(ctx, config),
+		grpcServerCmd(ctx, config),
 		versionCmd(),
 	)
 

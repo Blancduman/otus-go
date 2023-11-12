@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package event;
+
+option go_package = "./event/;event";
+
+import "grpc/v1/google/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+service EventService {
+  rpc Add(AddRequest) returns (AddResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/events/add"
+      body: "*"
+    };
+  }
+
+  rpc Edit(EditRequest) returns (EditResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/events/edit"
+      body: "*"
+    };
+  }
+
+  rpc Remove(RemoveRequest) returns (RemoveResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/events/remove"
+    };
+  }
+
+  rpc Get(GetRequest) returns (GetResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/events"
+    };
+  }
+
+  rpc GetDateTimeRange(RangeRequest) returns (RangeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/events/get-range"
+      body: "*"
+    };
+  }
+}
+
+message AddRequest {
+  string title = 1;
+  string description = 2;
+  int64 ownerId = 3;
+  google.protobuf.Timestamp startDate = 4;
+  google.protobuf.Timestamp endDate = 5;
+  optional google.protobuf.Duration remindIn = 6;
+}
+
+message AddResponse {
+  int64 id = 1;
+}
+
+message EditRequest {
+  int64 id = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional int64 ownerId = 4;
+  optional google.protobuf.Timestamp startDate = 5;
+  optional google.protobuf.Timestamp endDate = 6;
+  optional google.protobuf.Duration remindIn = 7;
+}
+
+message EditResponse {}
+
+message RemoveRequest {
+  int64 id = 1;
+}
+
+message RemoveResponse {}
+
+message GetRequest {
+  int64 id = 1;
+}
+
+message GetResponse {
+  Event event = 1;
+}
+
+message RangeRequest {
+  google.protobuf.Timestamp startDate = 1;
+  optional google.protobuf.Timestamp endDate = 2;
+}
+
+message RangeResponse {
+  repeated Event events = 1;
+}
+
+message Event {
+  int64 id = 1;
+  string title = 2;
+  string description = 3;
+  int64 ownerId = 4;
+  google.protobuf.Timestamp startDate = 5;
+  google.protobuf.Timestamp endDate = 6;
+  google.protobuf.Duration remindIn = 7;
+}

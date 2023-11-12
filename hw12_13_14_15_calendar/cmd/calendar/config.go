@@ -9,7 +9,8 @@ import (
 
 type Config struct {
 	Logger   LoggerConf `yaml:"logger"`
-	HTTP     HTTPConf   `yaml:"http"`
+	HTTP     ServerConf `yaml:"http"`
+	GRPC     ServerConf `yaml:"grpc"`
 	Database DBConf     `yaml:"database"`
 }
 
@@ -17,7 +18,7 @@ type LoggerConf struct {
 	Level string `yaml:"level"`
 }
 
-type HTTPConf struct {
+type ServerConf struct {
 	Host string `yaml:"host"`
 	Port string `yaml:"port"`
 }
@@ -45,4 +46,8 @@ func NewConfig(configPath string) Config {
 
 func (c *Config) GetAddr() string {
 	return fmt.Sprintf("%s:%s", c.HTTP.Host, c.HTTP.Port)
+}
+
+func (c *Config) GetGRPCAddr() string {
+	return fmt.Sprintf("%s:%s", c.GRPC.Host, c.GRPC.Port)
 }

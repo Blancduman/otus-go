@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/server"
 )
 
 type ResponseHook struct {
@@ -16,7 +18,7 @@ func (r *ResponseHook) WriteHeader(statusCode int) {
 	r.statusCode = statusCode
 }
 
-func loggingMiddleware(next http.Handler, log Logger) http.Handler {
+func loggingMiddleware(next http.Handler, log server.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now()
 		rh := &ResponseHook{
