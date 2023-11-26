@@ -1,0 +1,15 @@
+logger:
+  level: info
+database:
+  url: "host=db port=5432 user=otus_user password=otus_password dbname=calendar sslmode=disable TimeZone=UTC"
+  type: sql
+rabbitmq:
+  dsn: amqp://guest:guest@rabbitmq:5672/
+  exchange: calendar-exchange
+  exchangeType: topic
+  queue: notify-queue
+  key: notify-key
+  consumerTag: notify-tag
+scheduler:
+  period: 60
+  mark: 32140800 #60 * 60 * 24 * 31 * 12 = ~1 year in seconds

@@ -2,6 +2,7 @@ package sqlstorage
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/app"
@@ -32,6 +33,10 @@ func (s *Storage) Connect(ctx context.Context) error {
 		return errors.Wrap(err, "fail to ping connection db")
 	}
 
+	println("pinged")
+
+	s.conn = conn
+
 	return nil
 }
 
@@ -48,7 +53,7 @@ func (s *Storage) Close(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) Add(event *storage.Event) error {
+func (s *Storage) Add(ctx context.Context, event *storage.Event) error {
 	var id int64
 
 	query := `
@@ -58,14 +63,14 @@ func (s *Storage) Add(event *storage.Event) error {
 	`
 
 	err := s.conn.QueryRow(
-		context.Background(),
+		ctx,
 		query,
 		event.Title,
-		event.StartDate,
-		event.EndDate,
+		event.StartDate.UTC(),
+		event.EndDate.UTC(),
 		event.Description,
 		event.OwnerID,
-		event.RemindIn,
+		event.RemindIn.UTC(),
 	).Scan(&id)
 	if err != nil {
 		return errors.Wrap(err, "storage fail to insert event")
@@ -76,7 +81,7 @@ func (s *Storage) Add(event *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) Edit(event *storage.Event) error {
+func (s *Storage) Edit(ctx context.Context, event *storage.Event) error {
 	query := `
 		UPDATE event
 		SET title=$1, start_date=$2, end_date=$3, description=$4, owner_id=$5, remind_in=$6
@@ -84,14 +89,14 @@ func (s *Storage) Edit(event *storage.Event) error {
 	`
 
 	_, err := s.conn.Exec(
-		context.Background(),
+		ctx,
 		query,
 		event.Title,
-		event.StartDate,
-		event.EndDate,
+		event.StartDate.UTC(),
+		event.EndDate.UTC(),
 		event.Description,
 		event.OwnerID,
-		event.RemindIn,
+		event.RemindIn.UTC(),
 		event.ID,
 	)
 	if err != nil {
@@ -101,10 +106,10 @@ func (s *Storage) Edit(event *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) Delete(id int64) error {
+func (s *Storage) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM event WHERE id=$1`
 
-	_, err := s.conn.Exec(context.Background(), query, id)
+	_, err := s.conn.Exec(ctx, query, id)
 	if err != nil {
 		return errors.Wrap(err, "storage fail to delete")
 	}
@@ -112,13 +117,21 @@ func (s *Storage) Delete(id int64) error {
 	return nil
 }
 
-func (s *Storage) Get(id int64) (storage.Event, error) {
+func (s *Storage) Get(ctx context.Context, id int64) (storage.Event, error) {
 	event := storage.Event{}
-	query := `SELECT id, title, start_date, end_date, description, remindIn, owner_id FROM event WHERE id=$1`
+	query := `SELECT id, title, start_date, end_date, description, remind_in, owner_id FROM event WHERE id=$1`
 
-	row := s.conn.QueryRow(context.Background(), query, id)
+	row := s.conn.QueryRow(ctx, query, id)
 
-	err := row.Scan(&event.ID, &event.Title, &event.StartDate, &event.EndDate, &event.Description)
+	err := row.Scan(
+		&event.ID,
+		&event.Title,
+		&event.StartDate,
+		&event.EndDate,
+		&event.Description,
+		&event.RemindIn,
+		&event.OwnerID,
+	)
 	if err != nil {
 		return event, errors.Wrap(err, "storage fail to get event")
 	}
@@ -126,14 +139,14 @@ func (s *Storage) Get(id int64) (storage.Event, error) {
 	return event, nil
 }
 
-func (s *Storage) GetDateTimeRange(from, to time.Time) ([]storage.Event, error) {
+func (s *Storage) GetDateTimeRange(ctx context.Context, from, to time.Time) ([]storage.Event, error) {
 	query := `
-		SELECT id, title, description, start_date, end_date, remindIn, owner_id
+		SELECT id, title, description, start_date, end_date, remind_in, owner_id
 		FROM event
 		WHERE start_date BETWEEN $1 AND $2
 	`
 
-	rows, err := s.conn.Query(context.Background(), query, from.String(), to.String())
+	rows, err := s.conn.Query(ctx, query, from.UTC(), to.UTC())
 	if err != nil {
 		return nil, errors.Wrap(err, "storage fail to get datetime range")
 	}
@@ -164,4 +177,60 @@ func (s *Storage) GetDateTimeRange(from, to time.Time) ([]storage.Event, error) 
 	}
 
 	return result, nil
+}
+
+func (s *Storage) GetReminders(ctx context.Context, reminder time.Time) ([]*storage.Event, error) {
+	query := `SELECT id, title, description, start_date, end_date, remind_in, owner_id
+		FROM event
+		WHERE remind_in BETWEEN $1 AND $2
+	`
+
+	rows, err := s.conn.Query(
+		ctx,
+		query,
+		strings.Trim(reminder.UTC().String(), " UTC"),
+		strings.Trim(time.Now().UTC().String(), " UTC"),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "storage fail to get datetime range")
+	}
+
+	defer rows.Close()
+
+	var result []*storage.Event
+
+	for rows.Next() {
+		event := storage.Event{}
+
+		if err := rows.Scan(
+			&event.ID,
+			&event.Title,
+			&event.Description,
+			&event.StartDate,
+			&event.EndDate,
+			&event.RemindIn,
+			&event.OwnerID,
+		); err != nil {
+			return nil, errors.Wrap(err, "storage fail to read row")
+		}
+
+		result = append(result, &event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "storage row read error")
+	}
+
+	return result, nil
+}
+
+func (s *Storage) RemoveOlds(ctx context.Context, mark time.Time) error {
+	query := `DELETE FROM event WHERE end_date < $1`
+
+	_, err := s.conn.Exec(ctx, query, mark.UTC())
+	if err != nil {
+		return errors.Wrap(err, "storage fail to delete old events")
+	}
+
+	return nil
 }

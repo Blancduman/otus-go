@@ -1,24 +1,95 @@
 version: "3"
 
 services:
-  postgres:
+  db:
     image: postgres
-    restart: always
+    restart: unless-stopped
+    command: postgres
     ports:
       - "5432:5432"
+    expose:
+      - 5432
     volumes:
       - postgres-data:/data
     environment:
-      POSTGRES_DB: "db"
-      POSTGRES_HOST_AUTH_METHOD: "trust"
+      POSTGRES_USER: otus_user
+      POSTGRES_PASSWORD: otus_password
+      POSTGRES_DB: calendar
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U otus_user" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   calendar:
     build:
       context: ..
       dockerfile: build/Dockerfile
+    restart: always
+    expose:
+      - 8080
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
+      - migrate
+  scheduler:
+    build:
+      context: ..
+      dockerfile: build/scheduler/Dockerfile
+    restart: always
+    depends_on:
+      - migrate
+      - rabbitmq
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ../migrations:/migrations
+    entrypoint:
+      - "migrate"
+      - "-path"
+      - "/migrations"
+      - "-database"
+      - "postgres://otus_user:otus_password@db:5432/calendar?sslmode=disable"
+      - "up"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+  #  goose:
+#    build:
+#      context: ..
+#      dockerfile: build/goose/Dockerfile
+#    restart: on-failure
+#    environment:
+#      GOOSE_DRIVER: postgres
+#      GOOSE_DBSTRING: "host=postgres post=5432 user=otus_user password=otus_password dbname=calendar sslmode=disabled"
+#    command: -dir /migrations up
+#    volumes:
+#      - "../migrations:/migrations"
+#    depends_on:
+#      - postgres
+
+  #  initmigrate:
+#    build:
+#      context: ..
+#      dockerfile: migrations/Dockerfile
+#    restart: no
+#    depends_on:
+#      - postgres
+  sender:
+    build:
+      context: ..
+      dockerfile: build/sender/Dockerfile
+    restart: always
+    depends_on:
+      - rabbitmq
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
 
 volumes:
   postgres-data:
+  migrations:

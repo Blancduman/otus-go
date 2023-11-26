@@ -35,7 +35,7 @@ func (s *Storage) Close(_ context.Context) error {
 	return nil
 }
 
-func (s *Storage) Add(event *storage.Event) error {
+func (s *Storage) Add(_ context.Context, event *storage.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -46,7 +46,7 @@ func (s *Storage) Add(event *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) Edit(event *storage.Event) error {
+func (s *Storage) Edit(_ context.Context, event *storage.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -59,7 +59,7 @@ func (s *Storage) Edit(event *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) Delete(id int64) error {
+func (s *Storage) Delete(_ context.Context, id int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -68,7 +68,7 @@ func (s *Storage) Delete(id int64) error {
 	return nil
 }
 
-func (s *Storage) Get(id int64) (storage.Event, error) {
+func (s *Storage) Get(_ context.Context, id int64) (storage.Event, error) {
 	event, ok := s.eventsMap[id]
 
 	if !ok {
@@ -78,7 +78,7 @@ func (s *Storage) Get(id int64) (storage.Event, error) {
 	return *event, nil
 }
 
-func (s *Storage) GetDateTimeRange(from, to time.Time) ([]storage.Event, error) {
+func (s *Storage) GetDateTimeRange(_ context.Context, from, to time.Time) ([]storage.Event, error) {
 	result := make([]storage.Event, 0)
 
 	for _, event := range s.eventsMap {
@@ -88,4 +88,26 @@ func (s *Storage) GetDateTimeRange(from, to time.Time) ([]storage.Event, error) 
 	}
 
 	return result, nil
+}
+
+func (s *Storage) GetReminders(_ context.Context, reminder time.Time) ([]*storage.Event, error) {
+	result := make([]*storage.Event, 0)
+
+	for _, event := range s.eventsMap {
+		if event.RemindIn.Equal(reminder) || event.RemindIn.After(reminder) && event.RemindIn.Before(time.Now()) {
+			result = append(result, event)
+		}
+	}
+
+	return result, nil
+}
+
+func (s *Storage) RemoveOlds(_ context.Context, mark time.Time) error {
+	for _, event := range s.eventsMap {
+		if event.EndDate.Before(mark) {
+			delete(s.eventsMap, event.ID)
+		}
+	}
+
+	return nil
 }
