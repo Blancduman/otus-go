@@ -29,39 +29,41 @@ func NewServer(logger server.Logger, app server.Application, address string) *Se
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return nil
-	default:
-		handler := http.NewServeMux()
-		handler.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
-			_, err := w.Write([]byte("hello-world"))
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			handler := http.NewServeMux()
+			handler.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+				_, err := w.Write([]byte("hello-world"))
+				if err != nil {
+					s.logger.Error(err.Error())
+				} else {
+					w.WriteHeader(200)
+				}
+			})
+
+			runtimeMux := runtime.NewServeMux()
+
+			err := s.registerGRPC(ctx, runtimeMux)
 			if err != nil {
-				s.logger.Error(err.Error())
-			} else {
-				w.WriteHeader(200)
+				return errors.Wrap(err, "register grpc api handlers")
 			}
-		})
 
-		runtimeMux := runtime.NewServeMux()
+			handler.Handle("/api/v1/", runtimeMux)
 
-		err := s.registerGRPC(ctx, runtimeMux)
-		if err != nil {
-			return errors.Wrap(err, "register grpc api handlers")
+			s.server = &http.Server{
+				Addr:         s.address,
+				Handler:      loggingMiddleware(handler, s.logger),
+				ReadTimeout:  time.Second * 10,
+				WriteTimeout: time.Second * 10,
+			}
+
+			s.logger.Info(fmt.Sprintf("rest server start %s", s.address))
+
+			return s.server.ListenAndServe()
 		}
-
-		handler.Handle("/api/v1/", runtimeMux)
-
-		s.server = &http.Server{
-			Addr:         s.address,
-			Handler:      loggingMiddleware(handler, s.logger),
-			ReadTimeout:  time.Second * 10,
-			WriteTimeout: time.Second * 10,
-		}
-
-		s.logger.Info(fmt.Sprintf("rest server start %s", s.address))
-
-		return s.server.ListenAndServe()
 	}
 }
 

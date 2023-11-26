@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,7 +26,7 @@ func run(mCtx context.Context) error {
 		&configFile,
 		"config",
 		"c",
-		"/etc/calendar/calendar_config.yaml",
+		"/etc/scheduler/sender_config.yaml",
 		"Path to configuration file",
 	)
 
@@ -37,14 +36,7 @@ func run(mCtx context.Context) error {
 	}
 
 	config := NewConfig(configFile)
+	rootCmd.AddCommand(senderCmd(ctx, config))
 
-	fmt.Printf("%v", config)
-
-	rootCmd.AddCommand(
-		httpServerCmd(ctx, config),
-		grpcServerCmd(ctx, config),
-		versionCmd(),
-	)
-
-	return errors.Wrap(rootCmd.ExecuteContext(ctx), "run application")
+	return errors.Wrap(rootCmd.ExecuteContext(ctx), "run sender")
 }

@@ -23,11 +23,13 @@ type Logger interface {
 type Storage interface {
 	Connect(ctx context.Context) error
 	Close(ctx context.Context) error
-	Add(event *storage.Event) error
-	Edit(event *storage.Event) error
-	Delete(id int64) error
-	Get(id int64) (storage.Event, error)
-	GetDateTimeRange(from, to time.Time) ([]storage.Event, error)
+	Add(ctx context.Context, event *storage.Event) error
+	Edit(ctx context.Context, event *storage.Event) error
+	Delete(ctx context.Context, id int64) error
+	Get(ctx context.Context, id int64) (storage.Event, error)
+	GetDateTimeRange(ctx context.Context, from, to time.Time) ([]storage.Event, error)
+	GetReminders(ctx context.Context, reminder time.Time) ([]*storage.Event, error)
+	RemoveOlds(ctx context.Context, mark time.Time) error
 }
 
 func New(logger Logger, storage Storage) *App {
@@ -44,7 +46,7 @@ func (a *App) CreateEvent(
 	ownerID int64,
 	startDate time.Time,
 	endDate time.Time,
-	remindIn time.Duration,
+	remindIn time.Time,
 ) (int64, error) {
 	event := storage.Event{
 		ID:          0,
@@ -60,7 +62,7 @@ func (a *App) CreateEvent(
 	case <-ctx.Done():
 		return 0, errors.New("create event ctx done")
 	default:
-		err := a.Storage.Add(&event)
+		err := a.Storage.Add(ctx, &event)
 		if err != nil {
 			return 0, errors.Wrap(err, "create event")
 		}
@@ -77,7 +79,7 @@ func (a *App) EditEvent(
 	ownerID int64,
 	startDate time.Time,
 	endDate time.Time,
-	remindIn time.Duration,
+	remindIn time.Time,
 ) error {
 	ch := storage.Event{
 		ID:          id,
@@ -93,13 +95,13 @@ func (a *App) EditEvent(
 	case <-ctx.Done():
 		return errors.New("edit event ctx done")
 	default:
-		event, err := a.Storage.Get(id)
+		event, err := a.Storage.Get(ctx, id)
 		if err != nil {
 			return errors.Wrap(err, "edit event get event")
 		}
 
 		if change, isChanged := ch.ExactChanges(event); isChanged {
-			err := a.Storage.Edit(&change)
+			err := a.Storage.Edit(ctx, &change)
 			if err != nil {
 				return errors.Wrap(err, "edit event")
 			}
@@ -115,7 +117,7 @@ func (a *App) RemoveEvent(ctx context.Context, id int64) error {
 		return errors.New("remove event ctx done")
 
 	default:
-		err := a.Storage.Delete(id)
+		err := a.Storage.Delete(ctx, id)
 		if err != nil {
 			return errors.Wrap(err, "remove event")
 		}
@@ -129,7 +131,7 @@ func (a *App) GetEvent(ctx context.Context, id int64) (storage.Event, error) {
 	case <-ctx.Done():
 		return storage.Event{}, errors.New("get event ctx done")
 	default:
-		event, err := a.Storage.Get(id)
+		event, err := a.Storage.Get(ctx, id)
 		if err != nil {
 			return storage.Event{}, errors.Wrap(err, "get event")
 		}
@@ -148,7 +150,7 @@ func (a *App) GetDateTimeRangeEvents(
 		return nil, errors.New("get datetime range events ctx done")
 
 	default:
-		events, err := a.Storage.GetDateTimeRange(startDate, endDate)
+		events, err := a.Storage.GetDateTimeRange(ctx, startDate, endDate)
 		if err != nil {
 			return nil, errors.Wrap(err, "get datetime range events")
 		}

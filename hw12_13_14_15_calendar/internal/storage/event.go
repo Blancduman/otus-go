@@ -9,7 +9,7 @@ type Event struct {
 	EndDate     time.Time
 	Description string
 	OwnerID     int64
-	RemindIn    time.Duration
+	RemindIn    time.Time
 }
 
 func (e Event) ExactChanges(c Event) (Event, bool) {

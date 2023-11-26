@@ -9,4 +9,4 @@ grpc:
   port: 8081
 database:
   url: postgresql://postgres:postgres@localhost:5432/calendar
-  type: in_memory
+  type: sql

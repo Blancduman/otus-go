@@ -24,18 +24,18 @@ func TestStorage(t *testing.T) {
 
 	for _, event := range []storage.Event{fixture1(), fixture2(), fixture3(), fixture4(), fixture5(), fixture6()} {
 		event := event
-		err := store.Add(&event)
+		err := store.Add(ctx, &event)
 		require.NoError(t, err)
 	}
 
 	t.Run("get date time range all", func(t *testing.T) {
-		events, err := store.GetDateTimeRange(time.Now(), time.Now().Add(time.Hour*10))
+		events, err := store.GetDateTimeRange(ctx, time.Now(), time.Now().Add(time.Hour*10))
 		require.NoError(t, err)
 		require.Len(t, events, 6)
 	})
 
 	t.Run("get date time range out", func(t *testing.T) {
-		events, err := store.GetDateTimeRange(time.Now().Add(-time.Hour*100), time.Now().Add(-time.Hour*10))
+		events, err := store.GetDateTimeRange(ctx, time.Now().Add(-time.Hour*100), time.Now().Add(-time.Hour*10))
 		require.NoError(t, err)
 		require.Len(t, events, 0)
 	})
@@ -49,7 +49,7 @@ func TestStorage(t *testing.T) {
 			Description: "edit test",
 		}
 
-		err := store.Add(&newEvent)
+		err := store.Add(ctx, &newEvent)
 		require.NoError(t, err)
 		require.NotEqual(t, 0, newEvent.ID)
 
@@ -60,10 +60,10 @@ func TestStorage(t *testing.T) {
 			EndDate:     now.Add(time.Hour * 26),
 			Description: "edit test2",
 		}
-		err = store.Edit(&updateEvent)
+		err = store.Edit(ctx, &updateEvent)
 		require.NoError(t, err)
 
-		updatedEvent, err := store.Get(newEvent.ID)
+		updatedEvent, err := store.Get(ctx, newEvent.ID)
 		require.NoError(t, err)
 		require.Equal(t, "edit2", updatedEvent.Title)
 		require.Equal(t, "edit test2", updatedEvent.Description)
@@ -72,16 +72,16 @@ func TestStorage(t *testing.T) {
 	})
 
 	t.Run("delete event", func(t *testing.T) {
-		removableEvents, err := store.GetDateTimeRange(time.Now(), time.Now().Add(time.Hour*10))
+		removableEvents, err := store.GetDateTimeRange(ctx, time.Now(), time.Now().Add(time.Hour*10))
 		require.NoError(t, err)
 		require.NotEqual(t, 0, len(removableEvents))
 
 		for _, event := range removableEvents {
-			err := store.Delete(event.ID)
+			err := store.Delete(ctx, event.ID)
 			require.NoError(t, err)
 		}
 
-		events, err := store.GetDateTimeRange(time.Now(), time.Now().Add(time.Hour*10))
+		events, err := store.GetDateTimeRange(ctx, time.Now(), time.Now().Add(time.Hour*10))
 		require.NoError(t, err)
 		require.Len(t, events, 0)
 	})

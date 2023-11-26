@@ -1,0 +1,15 @@
+logger:
+  level: info
+database:
+  url: postgresql://otus_user:otus_password@localhost:5432/calendar
+  type: sql
+rabbitmq:
+  dsn: amqp://guest:guest@localhost:5672/
+  exchange: calendar-exchange
+  exchangeType: topic
+  queue: notify-queue
+  key: notify-key
+  consumerTag: notify-tag
+scheduler:
+  period: 10
+  mark: 32140800 #60 * 60 * 24 * 31 * 12 = ~1 year in seconds

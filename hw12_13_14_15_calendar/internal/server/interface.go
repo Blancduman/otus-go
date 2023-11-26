@@ -22,7 +22,7 @@ type Application interface {
 		ownerID int64,
 		startDate time.Time,
 		endDate time.Time,
-		remindIn time.Duration,
+		remindIn time.Time,
 	) (int64, error)
 	EditEvent(
 		ctx context.Context,
@@ -32,7 +32,7 @@ type Application interface {
 		ownerID int64,
 		startDate time.Time,
 		endDate time.Time,
-		remindIn time.Duration,
+		remindIn time.Time,
 	) error
 	RemoveEvent(ctx context.Context, id int64) error
 	GetEvent(ctx context.Context, id int64) (storage.Event, error)

@@ -6,7 +6,6 @@ import (
 	pb "github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/gen_buf/grpc/v1"
 	"github.com/blancduman/otus-go/hw12_13_14_15_calendar/internal/server"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -28,7 +27,7 @@ func (s EventServer) Add(ctx context.Context, r *pb.AddRequest) (*pb.AddResponse
 			r.GetOwnerId(),
 			r.GetStartDate().AsTime(),
 			r.GetEndDate().AsTime(),
-			r.GetRemindIn().AsDuration(),
+			r.GetRemindIn().AsTime(),
 		)
 		if err != nil {
 			s.Logger.Error(err.Error())
@@ -52,7 +51,7 @@ func (s EventServer) Edit(ctx context.Context, r *pb.EditRequest) (*pb.EditRespo
 			r.GetOwnerId(),
 			r.GetStartDate().AsTime(),
 			r.GetEndDate().AsTime(),
-			r.GetRemindIn().AsDuration(),
+			r.GetRemindIn().AsTime(),
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not edit event")
@@ -93,7 +92,7 @@ func (s EventServer) Get(ctx context.Context, r *pb.GetRequest) (*pb.GetResponse
 			OwnerId:     ev.OwnerID,
 			StartDate:   timestamppb.New(ev.StartDate),
 			EndDate:     timestamppb.New(ev.EndDate),
-			RemindIn:    durationpb.New(ev.RemindIn),
+			RemindIn:    timestamppb.New(ev.RemindIn),
 		}}, nil
 	}
 }
@@ -118,7 +117,7 @@ func (s EventServer) GetDateTimeRange(ctx context.Context, r *pb.RangeRequest) (
 				OwnerId:     ev.OwnerID,
 				StartDate:   timestamppb.New(ev.StartDate),
 				EndDate:     timestamppb.New(ev.EndDate),
-				RemindIn:    durationpb.New(ev.RemindIn),
+				RemindIn:    timestamppb.New(ev.RemindIn),
 			})
 		}
 

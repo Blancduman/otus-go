@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -41,7 +40,7 @@ func Test_EventServer(t *testing.T) {
 			OwnerId:     1,
 			StartDate:   timestamppb.New(time.Now().Add(time.Hour * 2)),
 			EndDate:     timestamppb.New(time.Now().Add(time.Hour * 3)),
-			RemindIn:    durationpb.New(time.Hour),
+			RemindIn:    timestamppb.New(time.Now().Add(time.Hour*2 + time.Minute*30)),
 		})
 		require.NotNil(t, e)
 		require.NoError(t, err)
@@ -52,7 +51,7 @@ func Test_EventServer(t *testing.T) {
 			OwnerId:     1,
 			StartDate:   timestamppb.New(time.Now().Add(time.Hour * 20)),
 			EndDate:     timestamppb.New(time.Now().Add(time.Hour * 21)),
-			RemindIn:    durationpb.New(time.Hour),
+			RemindIn:    timestamppb.New(time.Now().Add(time.Hour*20 + time.Minute*30)),
 		})
 		require.NotNil(t, e2)
 		require.NoError(t, err2)
