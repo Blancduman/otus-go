@@ -14,7 +14,7 @@ services:
     environment:
       POSTGRES_USER: otus_user
       POSTGRES_PASSWORD: otus_password
-      POSTGRES_DB: calendar
+      POSTGRES_DB: calendar_test
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U otus_user" ]
       interval: 5s
@@ -49,33 +49,13 @@ services:
       - "-path"
       - "/migrations"
       - "-database"
-      - "postgres://otus_user:otus_password@db:5432/calendar?sslmode=disable"
+      - "postgres://otus_user:otus_password@db:5432/calendar_test?sslmode=disable"
       - "up"
     depends_on:
       db:
         condition: service_healthy
     restart: on-failure
-  #  goose:
-#    build:
-#      context: ..
-#      dockerfile: build/goose/Dockerfile
-#    restart: on-failure
-#    environment:
-#      GOOSE_DRIVER: postgres
-#      GOOSE_DBSTRING: "host=postgres post=5432 user=otus_user password=otus_password dbname=calendar sslmode=disabled"
-#    command: -dir /migrations up
-#    volumes:
-#      - "../migrations:/migrations"
-#    depends_on:
-#      - postgres
 
-  #  initmigrate:
-#    build:
-#      context: ..
-#      dockerfile: migrations/Dockerfile
-#    restart: no
-#    depends_on:
-#      - postgres
   sender:
     build:
       context: ..
@@ -90,6 +70,14 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+
+  test_itgr:
+    container_name: test_itgr
+    build:
+      context: ..
+      dockerfile: build/test/Dockerfile
+    depends_on:
+      - calendar
 
 volumes:
   postgres-data:

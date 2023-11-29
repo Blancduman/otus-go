@@ -56,6 +56,10 @@ func (s *Storage) Close(ctx context.Context) error {
 func (s *Storage) Add(ctx context.Context, event *storage.Event) error {
 	var id int64
 
+	if event == nil {
+		return errors.New("empty event")
+	}
+
 	query := `
 		INSERT INTO event(title, start_date, end_date, description, owner_id, remind_in)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -161,6 +165,7 @@ func (s *Storage) GetDateTimeRange(ctx context.Context, from, to time.Time) ([]s
 		if err := rows.Scan(
 			&event.ID,
 			&event.Title,
+			&event.Description,
 			&event.StartDate,
 			&event.EndDate,
 			&event.RemindIn,
