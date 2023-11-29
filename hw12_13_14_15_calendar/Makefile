@@ -40,4 +40,18 @@ lint: install-lint-deps
 gen-grpc:
 	buf generate
 
+up:
+	docker-compose -f ./deployments/docker-compose.yaml up -d
+
+down:
+	docker-compose -f ./deployments/docker-compose.yml down
+
+integration-tests:
+		set -e ;\
+    docker-compose -f ./deployments/docker-compose.test.yml up --build -d ;\
+    test_status_code=0 ;\
+    docker-compose -f ./deployments/docker-compose.test.yml run test_itgr go test -tags integration ./test_integration || test_status_code=$$? ;\
+    docker-compose -f ./deployments/docker-compose.test.yml down ;\
+    exit $$test_status_code ;\
+
 .PHONY: build run build-img run-img version test lint
